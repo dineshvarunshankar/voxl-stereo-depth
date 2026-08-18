@@ -2,6 +2,7 @@
 set -euo pipefail
 
 DEPS="
+libmodal-json
 libmodal-pipe
 voxl-opencv
 "
