@@ -128,11 +128,6 @@ void prune_old_tracking(Context* context, std::int64_t hires_center_ns)
     }
 }
 
-std::int64_t center(const hetero_dfs::FrameDescriptor& frame)
-{
-    return frame.timestamp_ns + frame.exposure_ns / 2;
-}
-
 void log_pair(const TimedFrame& tracking, const TimedFrame& hires,
               std::int64_t signed_delta_ns,
               std::int64_t absolute_delta_ns)
