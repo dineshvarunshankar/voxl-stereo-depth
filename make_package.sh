@@ -35,6 +35,11 @@ if [[ ! -x build-qrb5165/src/voxl-stereo-timing ]]; then
     exit 1
 fi
 
+if [[ ! -x build-qrb5165/src/voxl-hetero-dfs-server ]]; then
+    echo "Missing build-qrb5165/src/voxl-hetero-dfs-server." >&2
+    exit 1
+fi
+
 control_file="pkg/control/control"
 if [[ ! -f "${control_file}" ]]; then
     echo "Missing ${control_file}." >&2

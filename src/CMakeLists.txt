@@ -32,4 +32,18 @@ target_link_libraries(voxl-stereo-timing
         ${MODAL_PIPE_LIBRARY}
         pthread
 )
-install(TARGETS voxl-stereo-timing RUNTIME DESTINATION /usr/bin)
+
+add_executable(voxl-hetero-dfs-server stereo_service.cpp)
+target_link_libraries(voxl-hetero-dfs-server
+    PRIVATE
+        hetero_dfs_core
+        hetero_dfs_rectification
+        ${MODAL_JSON_LIBRARY}
+        ${MODAL_PIPE_LIBRARY}
+        pthread
+)
+
+install(TARGETS
+    voxl-stereo-timing
+    voxl-hetero-dfs-server
+    RUNTIME DESTINATION /usr/bin)

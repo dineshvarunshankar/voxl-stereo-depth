@@ -26,12 +26,14 @@ Run this command:
 ./build.sh qrb5165
 ```
 
-This command builds `build-qrb5165/src/voxl-stereo-timing`.
+This command builds `build-qrb5165/src/voxl-stereo-timing` and
+`build-qrb5165/src/voxl-hetero-dfs-server`.
 
-Make sure that the binary exists:
+Make sure that the binaries exist:
 
 ```bash
 test -x build-qrb5165/src/voxl-stereo-timing
+test -x build-qrb5165/src/voxl-hetero-dfs-server
 ```
 
 ## Package
@@ -116,6 +118,26 @@ END {
 }' /data/stereo_timing.csv
 ```
 
+## Stereo Service Bring-Up
+
+Run the service skeleton after the timing probe is acceptable:
+
+```bash
+voxl-hetero-dfs-server /run/mpa/tracking_front /run/mpa/hires_small_grey \
+    1280 800 1024 768 5000000 60 2> /data/hetero_dfs.log
+```
+
+This first service stage validates frames and pairs them by exposure-center
+timestamp. It does not publish a depth image yet.
+
+Use `5000000` ns as the initial absolute-delta gate for 15 FPS bring-up.
+
+Read the diagnostics:
+
+```bash
+tail -n 20 /data/hetero_dfs.log
+```
+
 ## Bring-Up
 
 1. Build `voxl-stereo-timing` in the VOXL cross-build container.
@@ -125,6 +147,7 @@ END {
 5. Run `voxl-stereo-timing`.
 6. Save the CSV file.
 7. Inspect `signed_delta_ns`, `absolute_delta_ns`, and the stderr counters.
+8. Run `voxl-hetero-dfs-server` and inspect the pairing diagnostics.
 
 ## Flight Test Gate
 
@@ -146,3 +169,4 @@ real shared-board calibration before flight tests.
 - `build.sh qrb5165` compiles VOXL 2 targets in `voxl-cross`.
 - `make_package.sh` creates the `.deb` package.
 - `deploy_to_voxl.sh` installs the `.deb` package on VOXL 2.
+- `voxl-hetero-dfs-server` is the timestamp-pairing service skeleton.

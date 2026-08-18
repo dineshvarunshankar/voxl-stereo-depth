@@ -33,6 +33,10 @@ case "${1:-}" in
             echo "Missing build-qrb5165/src/voxl-stereo-timing" >&2
             exit 1
         fi
+        if [[ ! -x build-qrb5165/src/voxl-hetero-dfs-server ]]; then
+            echo "Missing build-qrb5165/src/voxl-hetero-dfs-server" >&2
+            exit 1
+        fi
         ;;
     *)
         echo "Usage: $0 qrb5165" >&2
