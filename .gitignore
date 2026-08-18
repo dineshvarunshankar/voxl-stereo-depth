@@ -1,0 +1,25 @@
+# CMake build trees
+/build/
+/build-*/
+/build-qrb5165/
+/cmake-build-*/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+
+# Native build products
+*.a
+*.o
+*.so
+*.so.*
+*.deb
+
+# Local editor and OS files
+.cache/
+.idea/
+.vscode/
