@@ -10,8 +10,6 @@ set(CMAKE_CXX_EXTENSIONS ON)
 
 add_compile_options(-Wall -Wextra -Werror -Wuninitialized -Werror=undef)
 
-option(HETERO_DFS_BUILD_VOXL "Build binaries that require VOXL SDK libraries" OFF)
-
 find_package(OpenCV REQUIRED COMPONENTS core)
 
 add_subdirectory(src)

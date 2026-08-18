@@ -6,17 +6,15 @@ VOXL 2. The first target is Starling 2 with `tracking_front` and
 
 The runtime does not use VINS, ZipDepth, or a neural model.
 
-## Desktop Build
+## Install Build Dependencies
 
-Install OpenCV development headers first.
-
-Run this command:
+Run this command inside the VOXL cross-build container:
 
 ```bash
-./build.sh native
+./install_build_deps.sh qrb5165 dev
 ```
 
-The command configures `build/` and compiles the host targets.
+Use the repo section that matches the target VOXL image.
 
 ## VOXL 2 Build
 
@@ -28,12 +26,50 @@ Run this command:
 ./build.sh qrb5165
 ```
 
-This command builds `voxl-stereo-timing`. It needs the ModalAI SDK headers and
-libraries in the cross-build environment.
+This command builds `build-qrb5165/src/voxl-stereo-timing`.
+
+Make sure that the binary exists:
+
+```bash
+test -x build-qrb5165/src/voxl-stereo-timing
+```
+
+## Package
+
+Run this command after the VOXL 2 build:
+
+```bash
+./make_package.sh
+```
+
+The command creates `voxl-hetero-dfs_<version>_arm64.deb`.
+
+## Deploy
+
+Deploy over ADB:
+
+```bash
+./deploy_to_voxl.sh adb
+```
+
+Deploy over SSH:
+
+```bash
+./deploy_to_voxl.sh ssh 192.168.1.123
+```
 
 ## Timing Probe
 
 Use `voxl-stereo-timing` on VOXL 2 before dense stereo flight tests.
+
+Example command:
+
+```bash
+voxl-stereo-timing /run/mpa/tracking_front /run/mpa/hires_small_grey \
+    1280 800 1024 768 10000000 30 300 > /data/stereo_timing.csv
+```
+
+Set the widths and heights to the active camera configuration.
 
 The probe reads two image pipes. It writes exposure-center timestamp pairs to
 CSV.
@@ -46,6 +82,16 @@ tracking_frame,hires_frame,tracking_center_ns,hires_center_ns,absolute_delta_ns
 
 ## Bring-Up
 
+1. Build `voxl-stereo-timing` in the VOXL cross-build container.
+2. Package the binary.
+3. Install the package on VOXL 2.
+4. Start both camera pipes.
+5. Run `voxl-stereo-timing`.
+6. Save the CSV file.
+7. Inspect `absolute_delta_ns` and the stderr counters.
+
+## Flight Test Gate
+
 1. Configure both cameras to the same supported FPS.
 2. Run the timing probe on VOXL 2.
 3. Capture a shared stereo calibration dataset.
@@ -57,3 +103,10 @@ tracking_frame,hires_frame,tracking_center_ns,hires_center_ns,absolute_delta_ns
 
 Use mechanical extrinsics only as an initial estimate. The stereo path needs a
 real shared-board calibration before flight tests.
+
+## Script Summary
+
+- `install_build_deps.sh` installs cross-build packages in `voxl-cross`.
+- `build.sh qrb5165` compiles VOXL 2 targets in `voxl-cross`.
+- `make_package.sh` creates the `.deb` package.
+- `deploy_to_voxl.sh` installs the `.deb` package on VOXL 2.

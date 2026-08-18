@@ -19,6 +19,10 @@ compile_commands.json
 *.so.*
 *.deb
 
+# Package generated files
+/pkg/data/
+/pkg/DEB/
+
 # Local editor and OS files
 .cache/
 .idea/

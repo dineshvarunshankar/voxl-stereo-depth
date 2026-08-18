@@ -23,22 +23,19 @@ check_cross_image()
 }
 
 case "${1:-}" in
-    native)
-        cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DHETERO_DFS_BUILD_VOXL=OFF
-        cmake --build build --parallel "${JOBS:-$(nproc)}"
-        ;;
     qrb5165)
         check_cross_image
         cmake -S . -B build-qrb5165 \
             -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_QRB5165}" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DHETERO_DFS_BUILD_VOXL=ON
+            -DCMAKE_BUILD_TYPE=Release
         cmake --build build-qrb5165 --parallel "${JOBS:-$(nproc)}"
+        if [[ ! -x build-qrb5165/src/voxl-stereo-timing ]]; then
+            echo "Missing build-qrb5165/src/voxl-stereo-timing" >&2
+            exit 1
+        fi
         ;;
     *)
-        echo "Usage: $0 {native|qrb5165}" >&2
+        echo "Usage: $0 qrb5165" >&2
         exit 1
         ;;
 esac
