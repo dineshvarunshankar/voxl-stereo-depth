@@ -1,0 +1,8 @@
+Package: voxl-hetero-dfs
+Version: 0.0.1
+Section: base
+Priority: optional
+Architecture: arm64
+Depends: libmodal-pipe, voxl-opencv
+Maintainer: Starling Stereo Depth
+Description: Heterogeneous stereo timing and depth tools for VOXL 2
