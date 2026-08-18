@@ -77,7 +77,43 @@ CSV.
 The CSV columns are:
 
 ```text
-tracking_frame,hires_frame,tracking_center_ns,hires_center_ns,absolute_delta_ns
+tracking_frame,hires_frame,tracking_center_ns,hires_center_ns,signed_delta_ns,absolute_delta_ns
+```
+
+Summarize the timing file:
+
+```bash
+awk -F, 'NR>1 {
+  n++; signed_sum+=$5; abs_sum+=$6
+  if(abs_min==""||$6<abs_min)abs_min=$6
+  if($6>abs_max)abs_max=$6
+}
+END {
+  print "pairs", n, "mean_signed_ns", signed_sum/n,
+        "mean_abs_ns", abs_sum/n, "min_abs_ns", abs_min,
+        "max_abs_ns", abs_max
+}' /data/stereo_timing.csv
+```
+
+Inspect the frame-step pattern:
+
+```bash
+awk -F, 'NR>2 {print $1-p1, $2-p2} {p1=$1; p2=$2}' \
+    /data/stereo_timing.csv | sort | uniq -c
+```
+
+Inspect signed jitter:
+
+```bash
+awk -F, 'NR>1 {d[NR-1]=$5; n++}
+END {
+  for(i=1;i<=n;i++) s+=d[i]
+  mean=s/n
+  for(i=1;i<=n;i++) {
+    e=d[i]-mean; if(e<0)e=-e; if(e>max_jitter)max_jitter=e
+  }
+  print "mean_signed_ns", mean, "max_signed_jitter_ns", max_jitter
+}' /data/stereo_timing.csv
 ```
 
 ## Bring-Up
@@ -88,7 +124,7 @@ tracking_frame,hires_frame,tracking_center_ns,hires_center_ns,absolute_delta_ns
 4. Start both camera pipes.
 5. Run `voxl-stereo-timing`.
 6. Save the CSV file.
-7. Inspect `absolute_delta_ns` and the stderr counters.
+7. Inspect `signed_delta_ns`, `absolute_delta_ns`, and the stderr counters.
 
 ## Flight Test Gate
 

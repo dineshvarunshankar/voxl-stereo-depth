@@ -86,10 +86,14 @@ void callback(int channel, camera_image_metadata_t metadata,
 
     hetero_dfs::FramePair pair;
     while (context->pairer.pop(&pair)) {
+        const std::int64_t tracking_center = center(pair.tracking);
+        const std::int64_t hires_center = center(pair.hires);
+        const std::int64_t signed_delta = tracking_center - hires_center;
         std::printf("%" PRId32 ",%" PRId32 ",%" PRId64 ",%" PRId64
-                    ",%" PRId64 "\n",
+                    ",%" PRId64 ",%" PRId64 "\n",
                     pair.tracking.frame_id, pair.hires.frame_id,
-                    center(pair.tracking), center(pair.hires), pair.delta_ns);
+                    tracking_center, hires_center, signed_delta,
+                    pair.delta_ns);
         std::fflush(stdout);
         if (++context->samples >= context->sample_limit) {
             main_running = 0;
@@ -151,7 +155,7 @@ int main(int argc, char** argv)
     }
 
     std::printf("tracking_frame,hires_frame,tracking_center_ns,"
-                "hires_center_ns,absolute_delta_ns\n");
+                "hires_center_ns,signed_delta_ns,absolute_delta_ns\n");
     while (main_running) usleep(100000);
     pipe_client_close_all();
 
