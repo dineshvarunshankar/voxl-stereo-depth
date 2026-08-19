@@ -16,6 +16,7 @@ enum class Camera {
 
 struct FramePairerConfig {
     std::int64_t max_delta_ns;
+    std::int64_t time_offset_ns;
     std::size_t max_queue_depth;
 };
 

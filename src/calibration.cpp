@@ -1,9 +1,14 @@
 #include "hetero_dfs/calibration.hpp"
 
+#include <modal_json.h>
+
 #include <cmath>
+#include <cstring>
 
 namespace hetero_dfs {
 namespace {
+
+const double kDegreesToRadians = 3.14159265358979323846 / 180.0;
 
 bool finite_matrix(const cv::Mat& matrix)
 {
@@ -72,6 +77,112 @@ bool valid_camera_matrix(const cv::Matx33d& matrix)
     return std::abs(matrix(2, 0)) <= 1.0e-12 &&
            std::abs(matrix(2, 1)) <= 1.0e-12 &&
            std::abs(matrix(2, 2) - 1.0) <= 1.0e-12;
+}
+
+bool json_string_equals(const cJSON* node, const char* expected)
+{
+    return node != NULL && cJSON_IsString(node) &&
+           node->valuestring != NULL &&
+           std::strcmp(node->valuestring, expected) == 0;
+}
+
+bool read_json_vector_3(const cJSON* node, cv::Vec3d* output)
+{
+    if (node == NULL || output == NULL || !cJSON_IsArray(node) ||
+        cJSON_GetArraySize(node) != 3) {
+        return false;
+    }
+    for (int index = 0; index < 3; ++index) {
+        const cJSON* const item = cJSON_GetArrayItem(node, index);
+        if (item == NULL || !cJSON_IsNumber(item) ||
+            !std::isfinite(item->valuedouble)) {
+            return false;
+        }
+        (*output)[index] = item->valuedouble;
+    }
+    return true;
+}
+
+cv::Matx33d rotation_x(double radians)
+{
+    const double c = std::cos(radians);
+    const double s = std::sin(radians);
+    return cv::Matx33d(1.0, 0.0, 0.0,
+                       0.0, c, -s,
+                       0.0, s, c);
+}
+
+cv::Matx33d rotation_y(double radians)
+{
+    const double c = std::cos(radians);
+    const double s = std::sin(radians);
+    return cv::Matx33d(c, 0.0, s,
+                       0.0, 1.0, 0.0,
+                       -s, 0.0, c);
+}
+
+cv::Matx33d rotation_z(double radians)
+{
+    const double c = std::cos(radians);
+    const double s = std::sin(radians);
+    return cv::Matx33d(c, -s, 0.0,
+                       s, c, 0.0,
+                       0.0, 0.0, 1.0);
+}
+
+cv::Matx33d modalai_rpy_parent_to_child_to_child_to_parent(
+    const cv::Vec3d& rpy_degrees)
+{
+    const double roll = rpy_degrees[0] * kDegreesToRadians;
+    const double pitch = rpy_degrees[1] * kDegreesToRadians;
+    const double yaw = rpy_degrees[2] * kDegreesToRadians;
+    return rotation_x(roll) * rotation_y(pitch) * rotation_z(yaw);
+}
+
+bool find_modalai_child_pose(const cJSON* root,
+                             const std::string& parent_frame,
+                             const std::string& child_frame,
+                             cv::Matx33d* rotation_child_to_parent,
+                             cv::Vec3d* translation_child_wrt_parent)
+{
+    if (root == NULL || rotation_child_to_parent == NULL ||
+        translation_child_wrt_parent == NULL) {
+        return false;
+    }
+    const cJSON* const extrinsics = cJSON_GetObjectItem(root, "extrinsics");
+    if (extrinsics == NULL || !cJSON_IsArray(extrinsics)) {
+        return false;
+    }
+
+    const int count = cJSON_GetArraySize(extrinsics);
+    for (int index = 0; index < count; ++index) {
+        const cJSON* const entry = cJSON_GetArrayItem(extrinsics, index);
+        if (entry == NULL || !cJSON_IsObject(entry)) {
+            continue;
+        }
+        const cJSON* const parent = cJSON_GetObjectItem(entry, "parent");
+        const cJSON* const child = cJSON_GetObjectItem(entry, "child");
+        if (!json_string_equals(parent, parent_frame.c_str()) ||
+            !json_string_equals(child, child_frame.c_str())) {
+            continue;
+        }
+
+        cv::Vec3d translation;
+        cv::Vec3d rpy_degrees;
+        if (!read_json_vector_3(cJSON_GetObjectItem(entry,
+                                                    "T_child_wrt_parent"),
+                                &translation) ||
+            !read_json_vector_3(cJSON_GetObjectItem(entry,
+                                                    "RPY_parent_to_child"),
+                                &rpy_degrees)) {
+            return false;
+        }
+        *rotation_child_to_parent =
+            modalai_rpy_parent_to_child_to_child_to_parent(rpy_degrees);
+        *translation_child_wrt_parent = translation;
+        return true;
+    }
+    return false;
 }
 
 }  // namespace
@@ -209,6 +320,49 @@ CalibrationLoad load_stereo_calibration(
     } catch (const cv::Exception&) {
         return CalibrationLoad::kInvalidSchema;
     }
+}
+
+CalibrationLoad load_modalai_extrinsics(
+    const std::string& path,
+    const std::string& parent_frame,
+    const std::string& from_camera,
+    const std::string& to_camera,
+    StereoTransform* transform)
+{
+    if (transform == NULL || parent_frame.empty() || from_camera.empty() ||
+        to_camera.empty()) {
+        return CalibrationLoad::kInvalidSchema;
+    }
+
+    cJSON* const root = json_read_file(path.c_str());
+    if (root == NULL) {
+        return CalibrationLoad::kCannotOpen;
+    }
+
+    cv::Matx33d rotation_from_to_parent;
+    cv::Matx33d rotation_to_to_parent;
+    cv::Vec3d translation_from_wrt_parent;
+    cv::Vec3d translation_to_wrt_parent;
+    const bool found_from = find_modalai_child_pose(
+        root, parent_frame, from_camera, &rotation_from_to_parent,
+        &translation_from_wrt_parent);
+    const bool found_to = find_modalai_child_pose(
+        root, parent_frame, to_camera, &rotation_to_to_parent,
+        &translation_to_wrt_parent);
+    cJSON_Delete(root);
+
+    if (!found_from || !found_to) {
+        return CalibrationLoad::kWrongCameraNames;
+    }
+
+    transform->rotation_to_from =
+        rotation_to_to_parent.t() * rotation_from_to_parent;
+    transform->translation_to_from =
+        rotation_to_to_parent.t() *
+        (translation_from_wrt_parent - translation_to_wrt_parent);
+    RectificationGeometry geometry;
+    return compute_rectification_geometry(*transform, &geometry) ?
+        CalibrationLoad::kValid : CalibrationLoad::kInvalidTransform;
 }
 
 }  // namespace hetero_dfs

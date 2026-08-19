@@ -52,6 +52,13 @@ CalibrationLoad load_stereo_calibration(
     const std::string& expected_to_camera,
     HeterogeneousStereoCalibration* calibration);
 
+CalibrationLoad load_modalai_extrinsics(
+    const std::string& path,
+    const std::string& parent_frame,
+    const std::string& from_camera,
+    const std::string& to_camera,
+    StereoTransform* transform);
+
 }  // namespace hetero_dfs
 
 #endif  // HETERO_DFS_CALIBRATION_HPP

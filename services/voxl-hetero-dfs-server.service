@@ -1,0 +1,18 @@
+[Unit]
+Description=voxl-hetero-dfs-server
+SourcePath=/usr/bin/voxl-hetero-dfs-server
+After=voxl-wait-for-fs.service voxl-camera-server.service
+Wants=voxl-camera-server.service
+Requires=voxl-wait-for-fs.service
+StartLimitBurst=5
+StartLimitIntervalSec=30s
+
+[Service]
+User=root
+Type=simple
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/bin/voxl-hetero-dfs-server
+
+[Install]
+WantedBy=multi-user.target

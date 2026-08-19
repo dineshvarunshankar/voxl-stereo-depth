@@ -10,7 +10,15 @@ set(CMAKE_CXX_EXTENSIONS ON)
 
 add_compile_options(-Wall -Wextra -Werror -Wuninitialized -Werror=undef)
 
-find_package(OpenCV REQUIRED COMPONENTS core)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d)
 
 add_subdirectory(src)
+
+install(FILES config/voxl-hetero-dfs-server.conf DESTINATION /etc/modalai)
+install(FILES services/voxl-hetero-dfs-server.service DESTINATION /etc/systemd/system)
+install(FILES
+    calibration/opencv_tracking_front_intrinsics.yml
+    calibration/opencv_hires_small_intrinsics.yml
+    DESTINATION /usr/share/modalai/voxl-hetero-dfs-server
+)
 

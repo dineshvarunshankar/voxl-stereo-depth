@@ -138,6 +138,7 @@ int main(int argc, char** argv)
         static_cast<std::uint32_t>(values[3])};
     Context context(
         {static_cast<std::int64_t>(values[4]),
+         0,
          static_cast<std::size_t>(values[5])},
         tracking, hires, values[6]);
 

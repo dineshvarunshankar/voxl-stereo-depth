@@ -22,16 +22,25 @@ struct CameraConfig {
 };
 
 struct ServiceConfig {
+    std::string output_pipe;
     CameraConfig tracking;
     CameraConfig hires;
+    std::string parent_frame;
+    std::string tracking_name;
+    std::string hires_name;
     std::string extrinsics_file;
-    FramePairerConfig pairing = {0, 0};
+    FramePairerConfig pairing = {0, 0, 0};
     std::uint32_t rectified_width = 0;
     std::uint32_t rectified_height = 0;
     std::int32_t min_disparity = 0;
     std::int32_t disparity_levels = 0;
     float min_depth_m = 0.0F;
     float max_depth_m = 0.0F;
+    std::int32_t block_size = 5;
+    std::int32_t uniqueness_ratio = 10;
+    std::int32_t speckle_window_size = 80;
+    std::int32_t speckle_range = 2;
+    std::int32_t disp12_max_diff = 1;
 };
 
 enum class ConfigValidation {
@@ -40,12 +49,18 @@ enum class ConfigValidation {
     kWrongCameraModel,
     kInvalidSourceGeometry,
     kMissingCalibration,
+    kMissingCameraName,
     kInvalidPairing,
     kInvalidRectifiedGeometry,
     kInvalidDisparityRange,
-    kInvalidDepthRange
+    kInvalidDepthRange,
+    kInvalidStereoMatcher,
+    kCannotOpen,
+    kInvalidSchema
 };
 
+ConfigValidation load_service_config(const std::string& path,
+                                     ServiceConfig* config);
 ConfigValidation validate_config(const ServiceConfig& config);
 
 }  // namespace hetero_dfs

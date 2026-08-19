@@ -78,56 +78,60 @@ bool FramePairer::pop(FramePair* pair)
     }
 
     while (!tracking_.empty() && !hires_.empty()) {
+        const TimedFrame& hires = hires_.front();
+        const std::int64_t target_center =
+            hires.center_ns + config_.time_offset_ns;
+
+        if (tracking_.back().center_ns <
+            target_center + config_.max_delta_ns) {
+            return false;
+        }
+
         std::size_t best_tracking = 0U;
-        std::size_t best_hires = 0U;
         std::int64_t best_delta = std::numeric_limits<std::int64_t>::max();
 
         for (std::size_t tracking_index = 0U;
              tracking_index < tracking_.size(); ++tracking_index) {
-            for (std::size_t hires_index = 0U;
-                 hires_index < hires_.size(); ++hires_index) {
-                const std::int64_t delta = absolute_delta(
-                    tracking_[tracking_index].center_ns,
-                    hires_[hires_index].center_ns);
-                if (delta < best_delta) {
-                    best_delta = delta;
-                    best_tracking = tracking_index;
-                    best_hires = hires_index;
-                }
+            const std::int64_t delta = absolute_delta(
+                tracking_[tracking_index].center_ns, target_center);
+            if (delta < best_delta) {
+                best_delta = delta;
+                best_tracking = tracking_index;
             }
         }
 
         if (best_delta <= config_.max_delta_ns) {
             counters_.stale_tracking += best_tracking;
-            counters_.stale_hires += best_hires;
             tracking_.erase(tracking_.begin(),
                             tracking_.begin() + best_tracking);
-            hires_.erase(hires_.begin(), hires_.begin() + best_hires);
 
             const TimedFrame tracking = tracking_.front();
-            const TimedFrame hires = hires_.front();
+            const TimedFrame accepted_hires = hires;
             tracking_.pop_front();
             hires_.pop_front();
 
             pair->tracking = tracking.frame;
-            pair->hires = hires.frame;
-            pair->delta_ns = best_delta;
+            pair->hires = accepted_hires.frame;
+            pair->delta_ns = absolute_delta(tracking.center_ns,
+                                            accepted_hires.center_ns);
             const std::int64_t earlier =
-                std::min(tracking.center_ns, hires.center_ns);
+                std::min(tracking.center_ns, accepted_hires.center_ns);
             const std::int64_t later =
-                std::max(tracking.center_ns, hires.center_ns);
+                std::max(tracking.center_ns, accepted_hires.center_ns);
             pair->timestamp_ns = earlier + (later - earlier) / 2;
             ++counters_.paired;
             return true;
         }
 
-        if (tracking_.front().center_ns < hires_.front().center_ns) {
+        const std::int64_t oldest_useful =
+            target_center - config_.max_delta_ns;
+        while (!tracking_.empty() &&
+               tracking_.front().center_ns < oldest_useful) {
             tracking_.pop_front();
             ++counters_.stale_tracking;
-        } else {
-            hires_.pop_front();
-            ++counters_.stale_hires;
         }
+        hires_.pop_front();
+        ++counters_.stale_hires;
     }
     return false;
 }

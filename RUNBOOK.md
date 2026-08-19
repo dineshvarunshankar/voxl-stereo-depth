@@ -53,41 +53,47 @@ END {
 }' /data/stereo_timing.csv
 ```
 
-## Service Skeleton
+## Depth Service
 
-Run this command after the timing probe is acceptable:
+The package installs `voxl-hetero-dfs-server` as a systemd service. It reads:
 
-```bash
-timeout 60s voxl-hetero-dfs-server \
-    /run/mpa/tracking_front /run/mpa/hires_small_grey \
-    1280 800 1024 768 5000000 60 \
-    2> /data/hetero_dfs.log
+```text
+/etc/modalai/voxl-hetero-dfs-server.conf
 ```
 
-The service skeleton validates frames and pairs them by exposure-center
-timestamp. It does not publish a depth image yet.
-
-Read the recent diagnostics:
+Start after checking the calibration paths in the config match the target camera
+calibration:
 
 ```bash
-tail -n 20 /data/hetero_dfs.log
+systemctl enable voxl-hetero-dfs-server
+systemctl start voxl-hetero-dfs-server
 ```
 
-Read the summary line:
+Restart after config changes:
 
 ```bash
-grep summary /data/hetero_dfs.log | tail -n 5
+systemctl restart voxl-hetero-dfs-server
 ```
 
-The summary line reports accepted `pairs`, `rejected_hires`, queued
-`waiting_hires`, and timing statistics for the accepted pairs.
+Inspect service logs:
+
+```bash
+journalctl -u voxl-hetero-dfs-server -n 80 --no-pager
+```
+
+Confirm the output pipe exists:
+
+```bash
+voxl-inspect-pipe hetero_depth
+```
+
+The output is `IMAGE_FORMAT_FLOAT32`, meters per pixel. Invalid pixels are NaN.
 
 ## Bring-Up Gate
 
 1. Configure both cameras to the target FPS.
 2. Run the timing probe.
-3. Run the service skeleton.
-4. Capture the shared stereo calibration dataset.
-5. Generate and inspect heterogeneous rectification maps.
-6. Add the dense disparity and depth service.
-7. Test the 0.5 m to 5 m range outdoors at 2 m/s.
+3. Start the depth service.
+4. Confirm `hetero_depth` publishes FLOAT32 frames.
+5. Inspect the point cloud for near-field shape and invalid regions.
+6. Test the 0.5 m to 5 m range outdoors at 2 m/s.

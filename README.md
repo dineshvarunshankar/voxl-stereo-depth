@@ -1,8 +1,8 @@
 # VOXL Heterogeneous DFS
 
-This repo contains C/C++ deployment code for heterogeneous stereo depth on
-VOXL 2. The first target is Starling 2 with `tracking_front` and
-`hires_small_grey`.
+This repo contains C/C++ deployment code for lightweight heterogeneous stereo
+depth on VOXL 2. The first target is Starling 2 with `tracking_front` and
+`hires_small_grey`, publishing one FLOAT32 metric depth pipe.
 
 The runtime does not use VINS, ZipDepth, or a neural model.
 
@@ -60,24 +60,43 @@ Deploy over SSH:
 ./deploy_to_voxl.sh ssh 192.168.1.123
 ```
 
-## Installed Binaries
+## Installed Files
 
 - `voxl-stereo-timing`
 - `voxl-hetero-dfs-server`
+- `/etc/modalai/voxl-hetero-dfs-server.conf`
+- `/etc/systemd/system/voxl-hetero-dfs-server.service`
+- `/usr/share/modalai/voxl-hetero-dfs-server/*.yml`
 
-## Quick Run
+## Runtime
+
+The package installs `voxl-hetero-dfs-server` and its systemd unit. The service
+reads `/etc/modalai/voxl-hetero-dfs-server.conf` and starts without CLI
+arguments.
+
+Enable and start it after checking the calibration paths in the config match the
+target:
 
 ```bash
-voxl-stereo-timing /run/mpa/tracking_front /run/mpa/hires_small_grey \
-    1280 800 1024 768 12000000 60 900 > /data/stereo_timing.csv
+systemctl enable voxl-hetero-dfs-server
+systemctl start voxl-hetero-dfs-server
 ```
 
 ```bash
-timeout 60s voxl-hetero-dfs-server /run/mpa/tracking_front /run/mpa/hires_small_grey \
-    1280 800 1024 768 5000000 60 2> /data/hetero_dfs.log
+systemctl status voxl-hetero-dfs-server
 ```
 
-The service skeleton pairs frames. It does not publish a depth image yet.
+Output pipe:
+
+```text
+/run/mpa/hetero_depth
+```
+
+Format:
+
+```text
+IMAGE_FORMAT_FLOAT32, meters per pixel, NaN for invalid depth
+```
 
 ## Script Summary
 
@@ -85,6 +104,6 @@ The service skeleton pairs frames. It does not publish a depth image yet.
 - `build.sh qrb5165` compiles VOXL 2 targets in `voxl-cross`.
 - `make_package.sh` creates the `.deb` package.
 - `deploy_to_voxl.sh` installs the `.deb` package on VOXL 2.
-- `voxl-hetero-dfs-server` is the timestamp-pairing service skeleton.
+- `voxl-hetero-dfs-server` publishes metric stereo depth from one configured camera pair.
 
 See `RUNBOOK.md` for field diagnostics.
