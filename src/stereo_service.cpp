@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <limits>
 #include <mutex>
@@ -170,7 +171,8 @@ bool copy_string(char* destination, std::size_t destination_size,
 
 bool create_depth_pipe(const hetero_dfs::ServiceConfig& config)
 {
-    pipe_info_t info = PIPE_INFO_INITIALIZER;
+    pipe_info_t info;
+    std::memset(&info, 0, sizeof(info));
     if (!copy_string(info.name, sizeof(info.name),
                      pipe_basename(config.output_pipe)) ||
         !copy_string(info.type, sizeof(info.type),
