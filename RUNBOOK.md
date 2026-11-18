@@ -1,17 +1,18 @@
 # Field Runbook
 
-Use this file for VOXL 2 field diagnostics.
-
 ## Timing Probe
 
-Run this command with the active camera sizes:
+On VOXL 2, use the active camera dimensions:
 
 ```bash
 voxl-stereo-timing /run/mpa/tracking_front /run/mpa/hires_small_grey \
     1280 800 1024 768 12000000 60 900 > /data/stereo_timing.csv
 ```
 
-The CSV columns are:
+Arguments after the pipe paths: tracking width and height, hires width and height,
+pairing tolerance (ns), queue depth, and sample count. Queue depth must be at least `2`.
+
+CSV columns:
 
 ```text
 tracking_frame,hires_frame,tracking_center_ns,hires_center_ns,signed_delta_ns,absolute_delta_ns
@@ -55,14 +56,13 @@ END {
 
 ## Depth Service
 
-The package installs `voxl-hetero-dfs-server` as a systemd service. It reads:
+Configuration:
 
 ```text
 /etc/modalai/voxl-hetero-dfs-server.conf
 ```
 
-Start after checking the calibration paths in the config match the target camera
-calibration:
+Check the camera calibration paths before starting:
 
 ```bash
 systemctl enable voxl-hetero-dfs-server
@@ -88,12 +88,3 @@ voxl-inspect-pipe hetero_depth
 ```
 
 The output is `IMAGE_FORMAT_FLOAT32`, meters per pixel. Invalid pixels are NaN.
-
-## Bring-Up Gate
-
-1. Configure both cameras to the target FPS.
-2. Run the timing probe.
-3. Start the depth service.
-4. Confirm `hetero_depth` publishes FLOAT32 frames.
-5. Inspect the point cloud for near-field shape and invalid regions.
-6. Test the 0.5 m to 5 m range outdoors at 2 m/s.

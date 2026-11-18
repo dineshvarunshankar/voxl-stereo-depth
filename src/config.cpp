@@ -178,7 +178,7 @@ ConfigValidation validate_config(const ServiceConfig& config)
         return ConfigValidation::kMissingCameraName;
     }
     if (config.pairing.max_delta_ns < 0 ||
-        config.pairing.max_queue_depth == 0U) {
+        config.pairing.max_queue_depth < 2U) {
         return ConfigValidation::kInvalidPairing;
     }
     if (config.rectified_width == 0U || config.rectified_height == 0U) {

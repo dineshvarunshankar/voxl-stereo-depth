@@ -123,7 +123,7 @@ int main(int argc, char** argv)
         values[2] == 0U || values[2] > UINT32_MAX ||
         values[3] == 0U || values[3] > UINT32_MAX ||
         values[4] > static_cast<std::uint64_t>(INT64_MAX) ||
-        values[5] == 0U || values[5] > SIZE_MAX || values[6] == 0U) {
+        values[5] < 2U || values[5] > SIZE_MAX || values[6] == 0U) {
         usage();
         return EXIT_FAILURE;
     }
@@ -146,6 +146,10 @@ int main(int argc, char** argv)
     pipe_client_set_camera_helper_cb(kTrackingChannel, callback, &context);
     pipe_client_set_camera_helper_cb(kHiresChannel, callback, &context);
 
+    std::printf("tracking_frame,hires_frame,tracking_center_ns,"
+                "hires_center_ns,signed_delta_ns,absolute_delta_ns\n");
+    std::fflush(stdout);
+
     main_running = 1;
     const int flags = CLIENT_FLAG_EN_CAMERA_HELPER;
     if (pipe_client_open(kTrackingChannel, argv[1],
@@ -155,8 +159,6 @@ int main(int argc, char** argv)
         main_running = 0;
     }
 
-    std::printf("tracking_frame,hires_frame,tracking_center_ns,"
-                "hires_center_ns,signed_delta_ns,absolute_delta_ns\n");
     while (main_running) usleep(100000);
     pipe_client_close_all();
 

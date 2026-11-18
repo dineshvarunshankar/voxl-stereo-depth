@@ -185,6 +185,8 @@ bool StereoDepthProcessor::process(const std::uint8_t* tracking_data,
                   cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0));
         matcher_->compute(tracking_rectified_, hires_rectified_,
                           disparity_fixed16_);
+        disparity_fixed16_.setTo(
+            -16, disparity_fixed16_ <= (config_.min_disparity - 1) * 16);
     } catch (const cv::Exception&) {
         return false;
     }

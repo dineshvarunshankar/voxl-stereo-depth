@@ -20,8 +20,8 @@ FramePairer::FramePairer(const FramePairerConfig& config)
     if (config_.max_delta_ns < 0) {
         throw std::invalid_argument("max_delta_ns must be nonnegative");
     }
-    if (config_.max_queue_depth == 0U) {
-        throw std::invalid_argument("max_queue_depth must be positive");
+    if (config_.max_queue_depth < 2U) {
+        throw std::invalid_argument("max_queue_depth must be at least 2");
     }
 }
 
